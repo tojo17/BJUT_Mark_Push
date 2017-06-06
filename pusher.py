@@ -195,7 +195,7 @@ def notify(course):
 				'color': '#173177'
 			},
 			'gpa': {
-				'value': course[7],
+				'value': course[7].lstrip(),
 				'color': '#173177'
 			}
 		}
