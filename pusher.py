@@ -34,7 +34,7 @@ def retry_post(retry, session, h_url, **kwargs):
 	ctTry = 0
 	while 1:
 		try:
-			res = session.post(h_url, verify=False, **kwargs)
+			res = session.post(h_url, **kwargs)
 		except:
 			if ctTry < retry:
 				ctTry += 1
@@ -52,7 +52,7 @@ def retry_get(retry, session, h_url, **kwargs):
 	ctTry = 0
 	while 1:
 		try:
-			res = session.get(h_url, verify=False, **kwargs)
+			res = session.get(h_url, **kwargs)
 		except:
 			if ctTry < retry:
 				ctTry += 1
