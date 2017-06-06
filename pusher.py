@@ -149,6 +149,7 @@ def get_score(session, username, name, viewstate):
 
 def print_log(*text):
     print(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())) ,*text)
+    sys.stdout.flush()
     return
 
 
