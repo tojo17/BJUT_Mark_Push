@@ -94,15 +94,17 @@ def get_name(session, username):
 	return rp[0][16:-14]
 
 def get_viewstate(session, username, name):
-	h_url = 'http://' + base_url + '/xscjcx.aspx'
-	h_params = {
-		'xh': username,
-		'xm': name.encode('gb2312'),
-		'gnmkdm': 'N121605'
-	}
-	r = retry_get(30, session, h_url,  params=h_params)
-	p = re.compile(r'<input type=\"hidden\" name=\"__VIEWSTATE\" value=\".+?\" />')
-	rp = p.findall(r.text)
+	rp = []
+	while len(rp) == 0:
+		h_url = 'http://' + base_url + '/xscjcx.aspx'
+		h_params = {
+			'xh': username,
+			'xm': name.encode('gb2312'),
+			'gnmkdm': 'N121605'
+		}
+		r = retry_get(30, session, h_url,  params=h_params)
+		p = re.compile(r'<input type=\"hidden\" name=\"__VIEWSTATE\" value=\".+?\" />')
+		rp = p.findall(r.text)
 	return rp[0][47:-4]
 
 def get_score(session, username, name, viewstate):
@@ -128,24 +130,24 @@ def get_score(session, username, name, viewstate):
 	t = html.fromstring(r.text)
 	# view every row
 	flag_changed = False
+	f_log = open("last_viewed_time.txt", "w")
 	for index, tr in enumerate(t.xpath('//table[@id="Datagrid1"]/tr')):
 		if index>0 : #bypass the title line
 			course = tr.xpath('./td/text()')
 			# use year+term+code+name to index a course
 			key_name = course[0] + course[1] + course[2] + course[3]
+			f_log.write(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())) + key_name + '\n')
 			if not (key_name in last_result.keys()):
 				last_result[key_name] = course[8]
 				notify(course)
 				flag_changed = True
+	f_log.close()
 	# save the dic as json if changed
 	if flag_changed:
 		with open('result.json', 'w') as f_json:
 			json.dump(last_result, f_json)
-	else:
-		f_log = open("last_viewed_time.txt", "w")
-		f_log.write(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())))
-		f_log.close()
-		# print_log("No new result")
+	# else: print_log("No new result")
+	
 
 def print_log(*text):
     print(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())) ,*text)
@@ -158,6 +160,7 @@ def notify(course):
 	session = requests.Session()
 	# if expired, get new token and save
 	if time.time() >= token['time'] + token['expire']:
+		print_log("Requireing new token...")
 		t_url = "https://api.weixin.qq.com/cgi-bin/token"
 		t_params = {
 			'grant_type': 'client_credential',
@@ -169,6 +172,7 @@ def notify(course):
 		token['token'] = r_token['access_token']
 		token['time'] = time.time()
 		token['expire'] = r_token['expires_in']
+		print_log(token)
 		with open('token.json', 'w') as f_json:
 			json.dump(token, f_json)
 
@@ -206,17 +210,13 @@ def notify(course):
 	print_log(r.text)
 
 
-	
-
-
-
 
 if __name__ == '__main__':
 	load_last_result()
 	s = login(userinfo.usr, userinfo.pwd)
 	name = get_name(s, userinfo.usr)
 	print_log(userinfo.usr, name)
-	viewstate = get_viewstate(s, userinfo.usr, name)
 	while 1:
+		viewstate = get_viewstate(s, userinfo.usr, name)
 		get_score(s, userinfo.usr, name, viewstate)
 		time.sleep(60)
