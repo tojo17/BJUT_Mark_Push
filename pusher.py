@@ -93,7 +93,7 @@ def get_name(session, username):
 	rp = p.findall(r.text)
 	return rp[0][16:-14]
 
-def get_viewstate(session, username, name):
+def get_viewstate(session, username, password, name):
 	rp = []
 	while len(rp) == 0:
 		h_url = 'http://' + base_url + '/xscjcx.aspx'
@@ -105,6 +105,7 @@ def get_viewstate(session, username, name):
 		r = retry_get(30, session, h_url,  params=h_params)
 		p = re.compile(r'<input type=\"hidden\" name=\"__VIEWSTATE\" value=\".+?\" />')
 		rp = p.findall(r.text)
+		if len(rp) == 0: login(username, password)
 	return rp[0][47:-4]
 
 def get_score(session, username, name, viewstate):
@@ -217,6 +218,6 @@ if __name__ == '__main__':
 	name = get_name(s, userinfo.usr)
 	print_log(userinfo.usr, name)
 	while 1:
-		viewstate = get_viewstate(s, userinfo.usr, name)
+		viewstate = get_viewstate(s, userinfo.usr, userinfo.pwd, name)
 		get_score(s, userinfo.usr, name, viewstate)
 		time.sleep(60)
