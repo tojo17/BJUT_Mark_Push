@@ -7,10 +7,10 @@ import json
 import time
 import userinfo
 
-timeout = 1
 base_url = 'gdjwgl.bjut.edu.cn'
 last_result = {}
 token = {'token': '0', 'time': 0, 'expire': 0}
+debug = False
 
 def load_last_result():
 	global last_result
@@ -34,7 +34,8 @@ def retry_post(retry, session, h_url, **kwargs):
 	ctTry = 0
 	while 1:
 		try:
-			res = session.post(h_url, **kwargs)
+			print_debug("retry_post", ctTry)
+			res = session.post(h_url, timeout=7, **kwargs)
 		except:
 			if ctTry < retry:
 				ctTry += 1
@@ -52,7 +53,8 @@ def retry_get(retry, session, h_url, **kwargs):
 	ctTry = 0
 	while 1:
 		try:
-			res = session.get(h_url, **kwargs)
+			print_debug("retry_get", ctTry)
+			res = session.get(h_url, timeout=7, **kwargs)
 		except:
 			if ctTry < retry:
 				ctTry += 1
@@ -66,7 +68,7 @@ def retry_get(retry, session, h_url, **kwargs):
 	return res
 
 def login(username, password):
-	session = requests.Session()
+	print_debug("Preparing for login...")
 	h_url = 'http://' + base_url + '/default_vsso.aspx'
 	h_head = {
 		'Content-Type': 'application/x-www-form-urlencoded'
@@ -77,13 +79,21 @@ def login(username, password):
 		'RadioButtonList1_2': '学生'.encode('gb2312'),
 		'Button1': ''
 	}
-	res = retry_post(30, session, h_url, data=h_data, headers=h_head, timeout=timeout, allow_redirects=False)
-
-	if res.headers["Location"] == '/xs_main.aspx?xh=' + username:
-		print_log("Login success.")
-	else:
-		print_log("Login failed, check password.")
-		sys.exit()
+	retry = 0
+	while 1:
+		print_debug("Logging in...", retry)
+		session = requests.Session()
+		res = retry_post(30, session, h_url, data=h_data, headers=h_head, allow_redirects=False)
+		if res.headers["Location"] == '/xs_main.aspx?xh=' + username:
+			print_log("Login success.")
+			break
+		else:
+			if(retry < 31):
+				retry += 1
+				print_log("Login failed, retry...", retry)
+			else:
+				print_log("Keep failing, exit.")
+				sys.exit()
 	return session
 
 def get_name(session, username):
@@ -96,19 +106,26 @@ def get_name(session, username):
 def get_viewstate(session, username, password, name):
 	rp = []
 	while len(rp) == 0:
+		print_debug("Getting viewstate...")
 		h_url = 'http://' + base_url + '/xscjcx.aspx'
 		h_params = {
 			'xh': username,
 			'xm': name.encode('gb2312'),
 			'gnmkdm': 'N121605'
 		}
+		print_debug("posting request...")
 		r = retry_get(30, session, h_url,  params=h_params)
+		print_debug("re.compile...")
 		p = re.compile(r'<input type=\"hidden\" name=\"__VIEWSTATE\" value=\".+?\" />')
+		print_debug("re.findall...")
 		rp = p.findall(r.text)
-		if len(rp) == 0: login(username, password)
-	return rp[0][47:-4]
+		print_debug("re.findall finished, length is", len(rp))
+		if len(rp) == 0: session = login(username, password)
+	print_log("Viewstate update success.")
+	return rp[0][47:-4], session
 
 def get_score(session, username, name, viewstate):
+	print_debug("Getting score...")
 	h_url = 'http://' + base_url + '/xscjcx.aspx'
 	h_params = {
 		'xh': username,
@@ -147,13 +164,18 @@ def get_score(session, username, name, viewstate):
 	if flag_changed:
 		with open('result.json', 'w') as f_json:
 			json.dump(last_result, f_json)
-	# else: print_log("No new result")
+	else: print_debug("No new result")
 	
 
 def print_log(*text):
     print(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())) ,*text)
     sys.stdout.flush()
     return
+
+def print_debug(*text):
+	global debug
+	if debug: print_log(*text)
+	return
 
 
 def notify(course):
@@ -218,6 +240,6 @@ if __name__ == '__main__':
 	name = get_name(s, userinfo.usr)
 	print_log(userinfo.usr, name)
 	while 1:
-		viewstate = get_viewstate(s, userinfo.usr, userinfo.pwd, name)
+		viewstate, s = get_viewstate(s, userinfo.usr, userinfo.pwd, name)
 		get_score(s, userinfo.usr, name, viewstate)
-		time.sleep(60)
+		time.sleep(300)
