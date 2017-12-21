@@ -190,7 +190,7 @@ def notify(course):
 			'appid': userinfo.appid,
 			'secret': userinfo.appsecret
 		}
-		r = retry_get(2, session, t_url,  params=t_params)
+		r = retry_get(30, session, t_url,  params=t_params)
 		r_token = json.loads(r.text)
 		token['token'] = r_token['access_token']
 		token['time'] = time.time()
