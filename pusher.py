@@ -35,7 +35,7 @@ def retry_post(retry, session, h_url, **kwargs):
 	while 1:
 		try:
 			print_debug("retry_post", ctTry)
-			res = session.post(h_url, timeout=7, **kwargs)
+			res = session.post(h_url, timeout=30, **kwargs)
 		except:
 			if ctTry < retry:
 				ctTry += 1
@@ -54,7 +54,7 @@ def retry_get(retry, session, h_url, **kwargs):
 	while 1:
 		try:
 			print_debug("retry_get", ctTry)
-			res = session.get(h_url, timeout=7, **kwargs)
+			res = session.get(h_url, timeout=30, **kwargs)
 		except:
 			if ctTry < retry:
 				ctTry += 1
