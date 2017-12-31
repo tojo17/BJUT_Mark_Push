@@ -6,6 +6,7 @@ import sys
 import json
 import time
 import userinfo
+import os
 
 base_url = 'gdjwgl.bjut.edu.cn'
 last_result = {}
@@ -43,6 +44,8 @@ def retry_post(retry, session, h_url, **kwargs):
 				sys.stdout.flush()
 			else:
 				print_log("Failed to get page. Exiting.")
+				# restart self
+				os.execl('daemon.sh', '')
 				sys.exit()
 		else:
 			break
@@ -62,6 +65,8 @@ def retry_get(retry, session, h_url, **kwargs):
 				sys.stdout.flush()
 			else:
 				print_log("Failed to get page. Exiting.")
+				# restart self
+				os.execl('daemon.sh', '')
 				sys.exit()
 		else:
 			break
@@ -235,6 +240,8 @@ def notify(course):
 
 
 if __name__ == '__main__':
+	# wait for another self to exit
+	time.sleep(20)
 	load_last_result()
 	s = login(userinfo.usr, userinfo.pwd)
 	name = get_name(s, userinfo.usr)
