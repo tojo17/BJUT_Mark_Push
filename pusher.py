@@ -98,6 +98,8 @@ def login(username, password):
 				print_log("Login failed, retry...", retry)
 			else:
 				print_log("Keep failing, exit.")
+				# restart self
+				os.execl('daemon.sh', '')
 				sys.exit()
 	return session
 
