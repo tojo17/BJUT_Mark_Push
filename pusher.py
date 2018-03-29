@@ -251,4 +251,4 @@ if __name__ == '__main__':
 	while 1:
 		viewstate, s = get_viewstate(s, userinfo.usr, userinfo.pwd, name)
 		get_score(s, userinfo.usr, name, viewstate)
-		time.sleep(300)
+		time.sleep(userinfo.crawler_delay)
